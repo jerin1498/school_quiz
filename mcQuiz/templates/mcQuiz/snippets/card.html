@@ -1,0 +1,7 @@
+<div class="card" style="width: 20rem;">
+  <div class="card-body">
+    <h4 class="card-title">{{ instance.subject }}</h4>
+    <a href="{{ instance.get_absolute_url }}" class="btn btn-primary">{%if instance.has_session%}View your result{%else%} Start {%endif%}</a>
+  </div>
+
+</div>

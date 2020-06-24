@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{%block css%}
+
+  <style>
+    .correct {
+      border: 2px solid rgb(7, 229, 233);
+      border-radius: 5px;
+      background-color: rgb(185, 244, 245);
+      margin-bottom: 30px;
+      padding-left: 10px;
+    }
+
+    .incorrect {
+      border: 2px solid rgb(248, 35, 6);
+      border-radius: 5px;
+      background-color: rgb(243, 193, 193);
+      margin-bottom: 30px;
+      padding-left: 10px;
+    }
+
+    /* .good {
+
+    } */
+  </style>
+
+{%endblock%}
+
+
+{%block content%}
+<h4 id="data" data-questions="{{questions}}"></h4>
+<h2>subject {{ object.subject }}</h2> <br/>
+
+<div id='result' class='' style="display: none">
+  <h3>Result for previous question</h3>
+  <h3 id='your-answer'>your answer was correct</h3>
+  <h4 id='per-question'>1 + 1 = ?</h4>
+  <ul id='pre-answer'>
+    <li>5</li>
+  </ul>
+  <h4 id='explination'></h4>
+</div>
+
+
+<form class="" action="" id='next' data-title='{{ object.subject }}'>
+  <div id='display' style="display:none">
+    <h4 id='question-no' style="display:inline">question 1 of 8 </h4>
+    <h5 id='time-left' style="display:inline">---remaining time 25</h3>
+<h3 id='question'>what is the question ?</h3>
+<div class="form-check ">
+  <input class="form-check-input messageCheckbox" type="checkbox" id="choice_A" value="question.choice_A" name="choice_A">
+  <label class="form-check-label" for="choice_A" id='choice_A_label'>question.choice_A</label>
+</div>
+<div class="form-check ">
+  <input class="form-check-input messageCheckbox" type="checkbox" id="choice_B" value="question.choice_B" name="choice_B">
+  <label class="form-check-label" for="choice_B" id='choice_B_label'>question.choice_B</label>
+</div>
+<div class="form-check ">
+  <input class="form-check-input messageCheckbox" type="checkbox" id="choice_C" value="question.choice_C" name="choice_C">
+  <label class="form-check-label" for="choice_C" id='choice_C_label'>question.choice_C</label>
+</div>
+<div class="form-check ">
+  <input class="form-check-input messageCheckbox" type="checkbox" id="choice_D" value="question.choice_D" name="choice_D">
+  <label class="form-check-label" for="choice_D" id='choice_D_label'>question.choice_D</label>
+</div>
+</div>
+<button type="submit" id='submit' class="btn btn-warning">start quiz</button>
+<!-- <button type="button" id='next' class="btn btn-warning">submit</button> -->
+</form>
+
+<button type="button" id='view_result' class="btn btn-warning" style='display:none' >View result</button>
+<div id='scores' class='' style="display: none">
+  <h3>your score was  3 out of 8</h3>
+  <h3>your percentage is 50%</h3>
+  <h3>status: good</h3>
+</div>
+
+<form id='save-answer-form' name='save_answer_form' style='display: none' action='/quiz/save'  method='post'>{%csrf_token%}
+  <div class="form-group">
+<!--    <textarea class="form-control" id="save-answer-value" rows="3" name='save-answer-value'  style=""></textarea>-->
+    <input class="form-control" id="save-answer-value" type="text" name='save-answer-value'  style="display: none">
+    <input class="form-control" id="save-exam-detail" type="text" name='save-exam-detail'  style="display: none">
+  </div>
+  <button type="submit" id='save-answer' class="btn btn-warning"> want to save your exam result ?</button>
+</form>
+
+{%endblock%}
+
+
+{%block scripts%}
+<script>
+    let questions_obj = JSON.parse(document.getElementById('data').dataset.questions);
+
+    let sub_and_start_btn = document.getElementById('submit');
+    let display = document.getElementById('display');
+
+    let nextButton = document.getElementById('next');
+    let question = document.getElementById('question');
+    let choice_A = document.getElementById('choice_A');
+    let choice_B = document.getElementById('choice_B');
+    let choice_C = document.getElementById('choice_C');
+    let choice_D = document.getElementById('choice_D');
+
+    let choice_A_label = document.getElementById('choice_A_label');
+    let choice_B_label = document.getElementById('choice_B_label');
+    let choice_C_label = document.getElementById('choice_C_label');
+    let choice_D_label = document.getElementById('choice_D_label');
+
+    let result = document.getElementById('result');
+    let your_answer = document.getElementById('your-answer');
+    let pre_question = document.getElementById('per-question');
+    let pre_answer = document.getElementById('pre-answer');
+    let time_left = document.getElementById('time-left');
+
+    let question_no = document.getElementById('question-no');
+    let view_result = document.getElementById('view_result');
+    let total_score_div = document.getElementById('scores');
+
+    let save_answer_form = document.getElementById('save-answer-form');
+    let save_answer_value = document.getElementById('save-answer-value');
+    let save_exam_detail = document.getElementById('save-exam-detail');
+    let explination = document.getElementById('explination')
+
+    let subject_name = nextButton.dataset.title;
+    
+
+
+    let userAnswer = document.getElementsByClassName('messageCheckbox:checked');
+
+    let exam_paper = [];
+    let correct_answers = [];
+    let exam_detail_ = {};
+    let current_question;
+    let total_score = 0;
+    let next_ = 0;
+    let interval = 1000;
+    let y = 0
+    let seconds = -1;
+    var refreshIntervalId = setInterval(() => {
+      seconds = seconds - 1;
+      time_left.innerHTML = `---remaining time left ${seconds}`; 
+      if (seconds == 0) sub_and_start_btn.click();
+    }, interval);
+   
+
+    nextButton.addEventListener('submit', e => {
+      e.preventDefault();
+      sub_and_start_btn.innerText = 'Next question'
+      display.style.display = 'block';
+      let qu_no = (next_ + 1) < questions_obj.length ? next_ + 1 : questions_obj.length;
+      question_no.innerText = `qustion ${qu_no} of ${questions_obj.length}`
+
+      let exam_obj = {};
+      let userAnswer_;
+      let previous_questions;
+      seconds = 30;
+
+      try{
+        var inputElements = Array.from(document.getElementsByClassName('messageCheckbox'));
+        userchoice_ = inputElements.map(ele => {
+          if (ele.checked) return String(ele.value);   
+        })
+        userAnswer_ = userchoice_.filter(ele => ele !== undefined)
+      }catch(e){
+        userAnswer_ = null;
+      }
+       
+      if(next_ < questions_obj.length){
+        current_question = questions_obj[next_];
+      }
+      
+      try{
+        previous_questions = questions_obj[(next_ - 1)];
+      }catch(e){
+        previous_questions = null;
+      }
+
+      correct = compare(userAnswer_, correct_answers)
+
+      if(previous_questions){
+        result.style.display = 'block';
+        pre_question.innerText = previous_questions.question
+        explination.innerText = '';
+        if (previous_questions.explanation){
+          console.log(previous_questions.explanation)
+           explination.innerText = previous_questions.explanation;
+        }
+        pre_answer.innerHTML = '';
+        exam_obj.question = previous_questions.question;
+        exam_obj.correct_answers = correct_answers;
+        exam_obj.userAnswer = userAnswer_;
+        exam_obj.was_user_answer_correct = correct;
+        exam_obj.subject_name = subject_name;
+        exam_paper.push(exam_obj);
+        
+        correct_answers.forEach(el => pre_answer.innerHTML += `<li>${el}</li>`)
+        if(correct){
+          your_answer.innerText = 'Your answer was correct';
+          result.className = 'correct';
+          total_score += 1;
+        }else{
+          your_answer.innerText = 'Your answer was incorrect';
+          result.className = 'incorrect';
+        }
+
+      }
+
+      question.innerText = current_question.question;
+
+      choice_A_label.innerText = current_question.choice_A;
+      choice_B_label.innerText = current_question.choice_B;
+      choice_C_label.innerText = current_question.choice_C;
+      choice_D_label.innerText = current_question.choice_D;
+
+      choice_A.value = current_question.choice_A;
+      choice_B.value = current_question.choice_B;
+      choice_C.value = current_question.choice_C;
+      choice_D.value = current_question.choice_D;
+
+
+      correct_answers = []; // clearing the old data
+      
+      if(current_question.is_choice_A_correct) correct_answers.push(String(current_question.choice_A));
+      if(current_question.is_choice_B_correct) correct_answers.push(String(current_question.choice_B));
+      if(current_question.is_choice_C_correct) correct_answers.push(String(current_question.choice_C));
+      if(current_question.is_choice_D_correct) correct_answers.push(String(current_question.choice_D));
+
+      if (next_ < questions_obj.length) {
+        next_ += 1;
+      }else{
+        display.style.display = 'none';
+        sub_and_start_btn.style.display = 'none';
+        view_result.style.display = 'block';
+      }
+      nextButton.reset()
+    })
+
+    view_result.addEventListener('click', () => {
+      result.style.display = 'none';
+      view_result.style.display = 'none';
+      clearInterval(refreshIntervalId);
+      total_score_div.style.display = 'block';
+      save_answer_form.style.display = 'block';
+      let grade;
+      let percentage_ = total_score > 0 ? (total_score / questions_obj.length) * 100 : 0 ;
+      exam_detail_.total_score = total_score;
+      exam_detail_.total_questions = questions_obj.length;
+      exam_detail_.percentage = percentage_;
+      exam_detail_.subject_name = subject_name;
+      if(percentage_ >= 75){
+        grade = 'excellent';
+      }else if(percentage_ >= 50){
+        grade = 'good';
+      }else{
+        grade = 'poor';
+      }
+      if(grade == 'poor') {
+        total_score_div.className = 'incorrect';
+      }else{
+        total_score_div.className = 'correct';
+      }
+      exam_detail_.grade = grade;
+
+      total_score_div.innerHTML =`
+        <h3>your score was  ${total_score} out of ${questions_obj.length}</h3>
+        <h3>your percentage is ${percentage_}%</h3>
+        <h3>status: ${grade}</h3>
+      `
+    })
+
+    save_answer_form.addEventListener('submit', (e) => {
+      e.preventDefault()
+      json_exam_answer = JSON.stringify(exam_paper);
+      save_answer_value.value = json_exam_answer;
+      save_exam_detail.value = JSON.stringify(exam_detail_);
+      document.save_answer_form.submit();
+    })
+
+    function compare(arr1,arr2){
+      if(JSON.stringify(arr1)==JSON.stringify(arr2)){
+        return true;
+      }else{
+        return false;
+      }       
+    }
+    sub_and_start_btn.click()
+</script>
+{%endblock%}

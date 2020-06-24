@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+{%if object_list%}
+        <div class="row">
+        <div class="col">
+            <h2>welcome to quiz</h2>
+            <h5>Rules are</h5>
+            <ul>
+                <li>candidate must login to participate the exam</li>
+                <li>Make sure you have a good internet connections</li>
+                <li>Do not refresh the page after the exam started </li>
+                <li>The answers are single or multiple correct answers in the choice</li>
+                <li>Candidate are not allow to re-select the old answers</li>
+                <li>After completing all the questions the main results are displayed </li>
+                <li>Candidate can see the next question only after complete the given question</li>
+                <li>Candidate can store their answer by selecting the save result button after completing the exam</li>
+            </ul>
+        </div>
+        <div>
+{%else%}
+            <h2>No quiz available now</h2>
+{%endif%}
+<div class='row'>
+    {% for obj in object_list %}
+        <div class='col'>
+        {% include 'mcQuiz/snippets/card.html' with instance=obj %}
+        
+        {% if forloop.counter|divisibleby:3 %}
+         </div> </div><div class='row'><div class='col-12'><hr/></div>
+        {% elif forloop.counter|divisibleby:2 %}
+            </div> </div><div class='row'><div class='col-12'><hr/></div>
+        {% else %}
+         </div>  
+        {% endif %}
+       
+    
+    {% endfor %}
+</div>
+{% endblock %}
